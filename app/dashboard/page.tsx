@@ -1,23 +1,21 @@
-"use client"
+import CenterCard from "@/components/CenterCard"
 
-import DashboardHeader from "@/components/dashboard/DashboardHeader"
-import StatsCards from "@/components/dashboard/StatsCards"
-import CenterGrid from "@/components/dashboard/CenterGrid"
-import MemberTable from "@/components/MemberTable"
+const centers = Array.from({length:17},(_,i)=>({
+
+id:i+1,
+name:`Center ${i+1}`
+
+}))
 
 export default function Dashboard(){
 
 return(
 
-<div className="p-10 space-y-10">
+<div className="grid grid-cols-4 gap-6">
 
-<DashboardHeader/>
-
-<StatsCards/>
-
-<CenterGrid/>
-
-<MemberTable/>
+{centers.map(center=>(
+<CenterCard key={center.id} {...center}/>
+))}
 
 </div>
 
