@@ -6,6 +6,8 @@ import { UserPlus, Phone } from "lucide-react";
 export default function AddMember() {
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [registeredId, setRegisteredId] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -80,8 +82,9 @@ export default function AddMember() {
       // ✅ UI update
       setAllMembers((prev) => [...prev, data]);
 
-      alert(`সফলভাবে যুক্ত হয়েছে!\nট্রাস্ট আইডি: ${nextTrustId}`);
-
+      // alert(`সফলভাবে যুক্ত হয়েছে!\nট্রাস্ট আইডি: ${nextTrustId}`);
+      setRegisteredId(nextTrustId);
+      setShowSuccess(true);
       // Reset form
       setFormData({
         name: "",
@@ -240,6 +243,39 @@ export default function AddMember() {
           </form>
         </div>
       </div>
+      {/* --- Premium Success Modal --- */}
+{showSuccess && (
+  <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    {/* Backdrop */}
+    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-500" />
+    
+    {/* Modal Content */}
+    <div className="relative bg-white w-full max-w-sm rounded-[3rem] p-8 text-center shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-300">
+      <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+        <UserPlus size={40} />
+      </div>
+      
+      <h2 className="text-2xl font-black text-slate-900 mb-2">অভিনন্দন!</h2>
+      <p className="text-slate-500 font-medium mb-6">
+        নতুন সদস্য সফলভাবে রেজিস্টার করা হয়েছে।
+      </p>
+      
+      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-8">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Generated Trust ID</p>
+        <p className="text-3xl font-mono font-black text-blue-600 tracking-tighter">{registeredId}</p>
+      </div>
+      
+      <button 
+        onClick={() => setShowSuccess(false)}
+        className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+      >
+        ঠিক আছে
+      </button>
     </div>
+  </div>
+)}
+    </div>
+
+    
   );
 }
