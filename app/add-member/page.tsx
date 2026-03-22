@@ -1,11 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { UserPlus, Phone, Droplet, Activity } from "lucide-react"
-// members.js থেকে ডাটা ইম্পোর্ট করুন
-import { members as initialMembers } from "../../data/members"   
-
-import { members } from '@/data/members';       
+import { UserPlus, Phone } from "lucide-react"
+import { members as initialMembers } from "../../data/members"     
 
 export default function AddMember() {
   // লোকাল স্টেট যাতে নতুন মেম্বার অ্যাড হলে সাথে সাথে আইডি আপডেট হয়
