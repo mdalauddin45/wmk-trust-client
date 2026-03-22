@@ -30,6 +30,7 @@ export default function CenterPage() {
       .then((data) => {
         setMembers(data);
         setLoading(false);
+        console.log("Members loaded:", data);
       })
       .catch((err) => {
         console.error(err);

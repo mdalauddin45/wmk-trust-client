@@ -1,16 +1,27 @@
-import CenterCard from "@/components/CenterCard";
+"use client"
 
-const centers = Array.from({ length: 17 }, (_, i) => ({
-  id: i + 1,
-  name: `Center ${i + 1}`,
-}));
+import { useEffect, useState } from "react"
+import CenterCard from "@/components/CenterCard"
 
 export default function Dashboard() {
+  const [centers, setCenters] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch("http://localhost:5000/centers") // 🔥 backend API
+      .then(res => res.json())
+      .then(data => setCenters(data))
+      .catch(err => console.error(err))
+  }, [])
+console.log("Centers loaded:", centers)
   return (
     <div className="grid grid-cols-4 gap-6">
-      {centers.map((center) => (
-        <CenterCard key={center.id} {...center} />
+      {centers?.map((center) => (
+        <CenterCard
+          key={center?._id }
+          id={center?.centerId}
+          name={center?.name}
+        />
       ))}
     </div>
-  );
+  )
 }
