@@ -12,7 +12,6 @@ export default function Dashboard() {
       .then(data => setCenters(data))
       .catch(err => console.error(err))
   }, [])
-console.log("Centers loaded:", centers)
   return (
     <div className="grid grid-cols-4 gap-6">
       {centers?.map((center) => (
