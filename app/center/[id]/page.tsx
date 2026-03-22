@@ -3,13 +3,13 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import MemberDetailsModal from "@/components/MemberDetailsModal";
+import MemberTable from "@/components/MemberTable"; // Import the table component
 import {
   ArrowLeft,
   Search,
   Users,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
   Download,
 } from "lucide-react";
 
@@ -37,26 +37,21 @@ export default function CenterPage() {
       });
   }, []);
 
-  // ✅ SMART FILTER + SEARCH (SAFE)
+  // ✅ Filter & Search logic
   const centerMembers = useMemo(() => {
     return members
       .filter((member) => {
-        // case 1: number
         if (member.centerId !== undefined && member.centerId !== null) {
           return Number(member.centerId) === centerId;
         }
-
-        // case 2: string (Center 14)
         if (member.center) {
           const extracted = parseInt(member.center.split(" ")[1]);
           return extracted === centerId;
         }
-
         return false;
       })
       .filter((m) => {
         const query = search.toLowerCase();
-
         return (
           m.name?.toLowerCase().includes(query) ||
           m.memberId?.toLowerCase().includes(query) ||
@@ -66,22 +61,14 @@ export default function CenterPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [members, centerId, search]);
 
-  // ✅ Stats
   const totalPaid = centerMembers.filter((m) => m.payment > 0).length;
   const totalDue = centerMembers.length - totalPaid;
 
-  if (loading) {
-    return (
-      <div className="p-10 text-center text-gray-500">
-        Loading members...
-      </div>
-    );
-  }
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading members...</div>;
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 md:p-10">
       <div className="max-w-7xl mx-auto space-y-8">
-
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
@@ -92,29 +79,21 @@ export default function CenterPage() {
               <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
               Back to Centers
             </button>
-
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
               Center <span className="text-blue-600">#{centerId}</span> Dashboard
             </h1>
-
-            <p className="text-slate-500 font-medium">
-              এখান থেকে সেন্টারের সকল মেম্বার এবং পেমেন্ট স্ট্যাটাস পরিচালনা করুন।
-            </p>
+            <p className="text-slate-500 font-medium">এখান থেকে সেন্টারের সকল মেম্বার এবং পেমেন্ট স্ট্যাটাস পরিচালনা করুন।</p>
           </div>
 
-          {/* Search */}
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
-                type="text"
-                placeholder="মেম্বার খুঁজুন..."
+                type="text" placeholder="মেম্বার খুঁজুন..."
                 className="bg-white border border-slate-200 pl-10 pr-4 py-3 rounded-2xl w-full md:w-64 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={search} onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-
             <button className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 shadow-sm transition-all">
               <Download size={20} />
             </button>
@@ -128,100 +107,24 @@ export default function CenterPage() {
           <StatCard title="Total Due" value={totalDue} icon={<AlertCircle />} color="rose" />
         </div>
 
-        {/* Table */}
-        <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 text-slate-400 text-[11px] uppercase font-black border-b">
-                  <th className="px-8 py-6">Member ID</th>
-                  <th className="px-8 py-6">Member Info</th>
-                  <th className="px-8 py-6">Payment Status</th>
-                  <th className="px-8 py-6 text-right">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y">
-                {centerMembers.length > 0 ? (
-                  centerMembers.map((member) => (
-                    <tr key={member._id} className="hover:bg-blue-50 transition">
-
-                      {/* ID */}
-                      <td className="px-8 py-5">
-                        <span className="font-mono text-xs bg-slate-100 px-3 py-1 rounded-xl">
-                          {member.memberId || member.trustId}
-                        </span>
-                      </td>
-
-                      {/* Name */}
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
-                            {member.name?.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-bold">{member.name}</p>
-                            <p className="text-xs text-gray-400">Verified Member</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Payment */}
-                      <td className="px-8 py-5">
-                        <div
-                          className={`px-4 py-1 rounded-full text-xs font-bold ${
-                            member.payment > 0
-                              ? "bg-green-100 text-green-600"
-                              : "bg-red-100 text-red-600"
-                          }`}
-                        >
-                          ৳{member.payment || 0} — {member.payment > 0 ? "Paid" : "Due"}
-                        </div>
-                      </td>
-
-                      {/* Action */}
-                      <td className="px-8 py-5 text-right">
-                        <button
-                          onClick={() => setSelectedMember(member)}
-                          className="bg-black text-white px-4 py-2 rounded-xl text-xs hover:bg-blue-600"
-                        >
-                          Details <ExternalLink size={12} />
-                        </button>
-                      </td>
-
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="text-center py-20 text-gray-400">
-                      কোনো সদস্য পাওয়া যায়নি
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
+        {/* Updated Table Component */}
+        <MemberTable 
+          members={centerMembers} 
+          onSelectMember={(member) => setSelectedMember(member)} 
+        />
       </div>
 
-      {/* Modal */}
-      <MemberDetailsModal
-        member={selectedMember}
-        onClose={() => setSelectedMember(null)}
-      />
+      <MemberDetailsModal member={selectedMember} onClose={() => setSelectedMember(null)} />
     </div>
   );
 }
 
-// ✅ Stat Card
 function StatCard({ title, value, icon, color }: any) {
   const colors: any = {
     blue: "bg-blue-50 text-blue-600",
     emerald: "bg-emerald-50 text-emerald-600",
     rose: "bg-rose-50 text-rose-600",
   };
-
   return (
     <div className={`p-6 rounded-2xl ${colors[color]} flex justify-between`}>
       <div>

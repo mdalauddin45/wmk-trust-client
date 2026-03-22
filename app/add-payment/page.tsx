@@ -35,7 +35,8 @@ export default function AddPayment() {
         const matchesCenter = selectedCenter ? m.centerId === parseInt(selectedCenter) : true;
         const matchesSearch = searchQuery ? 
           m.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          m.trustId?.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+          m.trustId?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          m.memberId?.toLowerCase().includes(searchQuery.toLowerCase()) : true;
         return matchesCenter && matchesSearch;
       })
       .slice(0, 10);
@@ -46,7 +47,8 @@ export default function AddPayment() {
     if (!selectedMember) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/payments/${selectedMember.trustId}`);
+      const memberId = selectedMember?.trustId || selectedMember?.memberId;
+      const res = await fetch(`http://localhost:5000/payments/${memberId}`);
       const data = await res.json();
       setMemberPayments(data);
       setShowHistory(true);
@@ -145,7 +147,7 @@ export default function AddPayment() {
                     filteredMembers.map((m) => (
                       <div key={m._id} className="p-3 hover:bg-green-50 cursor-pointer border-b last:border-0 flex justify-between items-center" onClick={() => { setSelectedMember(m); setSearchQuery(m.name); }}>
                         <span className="font-medium text-slate-800">{m.name}</span>
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">{m.trustId}</span>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">{m.trustId || m.memberId}</span>
                       </div>
                     ))
                   ) : (
