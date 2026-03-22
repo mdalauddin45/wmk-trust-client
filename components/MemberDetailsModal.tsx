@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { CreditCard, X } from "lucide-react";
 
 export default function MemberDetailsModal({ member, onClose }: any) {
   const [payments, setPayments] = useState<any[]>([]);
