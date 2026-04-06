@@ -17,7 +17,6 @@ export default function MemberTable({ members, onSelectMember }: MemberTableProp
               <tr className="bg-slate-50 text-slate-400 text-[10px] md:text-[11px] uppercase font-black border-b">
                 <th className="px-4 md:px-8 py-4 md:py-6">Member ID</th>
                 <th className="px-4 md:px-8 py-4 md:py-6">Member Info</th>
-                {/* মোবাইল স্ক্রিনে এই কলামটি হাইড থাকবে, বড় স্ক্রিনে দেখাবে */}
                 <th className="hidden sm:table-cell px-8 py-6">Payment Status</th>
                 <th className="px-4 md:px-8 py-4 md:py-6 text-right">Actions</th>
               </tr>
