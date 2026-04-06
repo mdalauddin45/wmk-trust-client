@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import MemberDetailsModal from "@/components/MemberDetailsModal";
-import MemberTable from "@/components/MemberTable"; // Import the table component
+import MemberTable from "@/components/MemberTable";
 import {
   ArrowLeft,
   Search,
@@ -19,31 +19,44 @@ export default function CenterPage() {
   const centerId = Number(params.id);
 
   const [members, setMembers] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [centers, setCenters] = useState<any[]>([]); // ✅ সেন্টার লিস্টের জন্য স্টেট
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load members
   useEffect(() => {
-    fetch("http://localhost:5000/members")
-      .then((res) => res.json())
-      .then((data) => {
-        setMembers(data);
+    const fetchData = async () => {
+      try {
+        const [membersRes, paymentsRes, centersRes] = await Promise.all([
+          fetch("http://localhost:5000/members"),
+          fetch("http://localhost:5000/payments"),
+          fetch("http://localhost:5000/centers") // ✅ সেন্টারের এপিআই কল
+        ]);
+        
+        const membersData = await membersRes.json();
+        const paymentsData = await paymentsRes.json();
+        const centersData = await centersRes.json();
+        
+        setMembers(membersData);
+        setPayments(paymentsData);
+        setCenters(centersData);
+      } catch (err) {
+        console.error("Error loading data:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      }
+    };
+    fetchData();
   }, []);
 
-  // ✅ Filter & Search logic
+  // ✅ ফিল্টার লজিক
   const centerMembers = useMemo(() => {
     return members
       .filter((member) => {
-        if (member.centerId !== undefined && member.centerId !== null) {
-          return Number(member.centerId) === centerId;
-        }
+        const mId = member.centerId !== undefined ? Number(member.centerId) : null;
+        if (mId !== null) return mId === centerId;
+        
         if (member.center) {
           const extracted = parseInt(member.center.split(" ")[1]);
           return extracted === centerId;
@@ -54,22 +67,42 @@ export default function CenterPage() {
         const query = search.toLowerCase();
         return (
           m.name?.toLowerCase().includes(query) ||
-          m.memberId?.toLowerCase().includes(query) ||
-          m.trustId?.toLowerCase().includes(query)
+          String(m.memberId).toLowerCase().includes(query)
         );
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [members, centerId, search]);
 
-  const totalPaid = centerMembers.filter((m) => m.payment > 0).length;
-  const totalDue = centerMembers.length - totalPaid;
+  // ✅ ডাইনামিক সেন্টার নাম (সেন্টার কালেকশন থেকে)
+  const currentCenterName = useMemo(() => {
+    const centerObj = centers.find(c => Number(c.centerId) === centerId);
+    return centerObj ? centerObj.name : `Center #${centerId}`;
+  }, [centers, centerId]);
 
-  if (loading) return <div className="p-10 text-center text-gray-500">Loading members...</div>;
+  const stats = useMemo(() => {
+    const currentMonth = new Date().toLocaleString("en-US", { month: "long" });
+    const currentYear = new Date().getFullYear();
+
+    const paidCount = centerMembers.filter((member) => {
+      return payments.some((p) => {
+        const pDate = new Date(p.date);
+        const isSameMember = String(p.memberId) === String(member._id) || String(p.memberId) === String(member.memberId);
+        const isCurrentMonth = p.month === currentMonth && pDate.getFullYear() === currentYear;
+        return isSameMember && isCurrentMonth;
+      });
+    }).length;
+
+    return {
+      totalPaid: paidCount,
+      totalDue: centerMembers.length - paidCount
+    };
+  }, [centerMembers, payments]);
+
+  if (loading) return <div className="p-10 text-center text-gray-500 font-bold">Loading Dashboard...</div>;
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 md:p-10">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
             <button
@@ -80,37 +113,41 @@ export default function CenterPage() {
               Back to Centers
             </button>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-              Center <span className="text-blue-600">#{centerId}</span> Dashboard
+              {/* ✅ এখানে ডাইনামিক নাম বসছে (যেমন: Fatikchari Rural Unit) */}
+              <span className="text-blue-600">{currentCenterName}</span>{" "}
+              Dashboard
             </h1>
-            <p className="text-slate-500 font-medium">এখান থেকে সেন্টারের সকল মেম্বার এবং পেমেন্ট স্ট্যাটাস পরিচালনা করুন।</p>
+            <p className="text-slate-500 font-medium">
+              সেন্টারের সকল মেম্বার এবং পেমেন্ট স্ট্যাটাস পরিচালনা করুন।
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
-                type="text" placeholder="মেম্বার খুঁজুন..."
-                className="bg-white border border-slate-200 pl-10 pr-4 py-3 rounded-2xl w-full md:w-64 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm"
-                value={search} onChange={(e) => setSearch(e.target.value)}
+                type="text"
+                placeholder="মেম্বার খুঁজুন..."
+                className="bg-white border border-slate-200 pl-10 pr-4 py-3 rounded-2xl w-full md:w-64 outline-none shadow-sm"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 shadow-sm transition-all">
+            <button className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 shadow-sm">
               <Download size={20} />
             </button>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard title="Total Members" value={centerMembers.length} icon={<Users />} color="blue" />
-          <StatCard title="Total Paid" value={totalPaid} icon={<CheckCircle2 />} color="emerald" />
-          <StatCard title="Total Due" value={totalDue} icon={<AlertCircle />} color="rose" />
+          <StatCard title="Total Paid" value={stats.totalPaid} icon={<CheckCircle2 />} color="emerald" />
+          <StatCard title="Total Due" value={stats.totalDue} icon={<AlertCircle />} color="rose" />
         </div>
 
-        {/* Updated Table Component */}
-        <MemberTable 
-          members={centerMembers} 
-          onSelectMember={(member) => setSelectedMember(member)} 
+        <MemberTable
+          members={centerMembers}
+          onSelectMember={(member) => setSelectedMember(member)}
         />
       </div>
 
@@ -126,12 +163,12 @@ function StatCard({ title, value, icon, color }: any) {
     rose: "bg-rose-50 text-rose-600",
   };
   return (
-    <div className={`p-6 rounded-2xl ${colors[color]} flex justify-between`}>
+    <div className={`p-6 rounded-2xl ${colors[color]} flex justify-between items-center`}>
       <div>
-        <p className="text-xs font-bold">{title}</p>
-        <h3 className="text-3xl font-bold">{value}</h3>
+        <p className="text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
+        <h3 className="text-3xl font-black">{value}</h3>
       </div>
-      <div>{icon}</div>
+      <div className="opacity-80">{icon}</div>
     </div>
   );
 }
