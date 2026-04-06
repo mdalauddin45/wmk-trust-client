@@ -15,46 +15,72 @@ import {
   LogOut,
   ArrowRight,
   Info,
+  ShieldCheck,
 } from "lucide-react";
+
+// Admin Data এর জন্য ইন্টারফেস
+interface AdminData {
+  name?: string;
+  email?: string;
+  role?: string;
+  center?: string;
+}
 
 export default function Navbar() {
   const [admin, setAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [isModalActive, setIsModalActive] = useState(false); // মোডাল স্টেট ট্র্যাকার
+  const [isModalActive, setIsModalActive] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [adminInfo, setAdminInfo] = useState<any>(null);
-  const infoRef = useRef<HTMLDivElement>(null);
-
+  const [adminInfo, setAdminInfo] = useState<AdminData | null>(null);
+  
   const pathname = usePathname();
+  const infoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // স্ক্রল হ্যান্ডলার
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
 
-    // এডমিন চেক
+    // এডমিন চেক ও ডাটা লোড
     const role = localStorage.getItem("role");
+    const adminData = localStorage.getItem("admin");
+
     if (role === "main_admin" || role === "center_admin") {
       setAdmin(true);
     }
 
-    // মোডাল ডিটেক্টর: বডিতে 'overflow: hidden' আছে কিনা তা পর্যবেক্ষণ করবে
+    if (adminData) {
+      try {
+        setAdminInfo(JSON.parse(adminData));
+      } catch (e) {
+        console.error("Failed to parse admin data");
+      }
+    }
+
+    // বডিতে 'overflow: hidden' থাকলে নববার হাইড করার লজিক
     const checkModal = () => {
-      const isHidden =
-        window.getComputedStyle(document.body).overflow === "hidden";
+      const isHidden = window.getComputedStyle(document.body).overflow === "hidden";
       setIsModalActive(isHidden);
     };
 
-    // প্রতিবার বডি স্টাইল পরিবর্তন হলে এটি চেক করবে
     const observer = new MutationObserver(checkModal);
     observer.observe(document.body, {
       attributes: true,
       attributeFilter: ["style"],
     });
 
+    // ক্লিক আউটসাইড টু ক্লোজ ইনফো বক্স
+    const handleClickOutside = (event: MouseEvent) => {
+      if (infoRef.current && !infoRef.current.contains(event.target as Node)) {
+        setShowInfo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
       observer.disconnect();
     };
   }, []);
@@ -67,8 +93,12 @@ export default function Navbar() {
     { name: "ড্যাশবোর্ড", path: "/dashboard", icon: <LayoutGrid size={18} /> },
   ];
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/login"; // রিলেটিভ পাথ ব্যবহার করা ভালো
+  };
+
   return (
-    // isModalActive true হলে opacity-0 এবং pointer-events-none হয়ে যাবে
     <div
       className={`fixed top-6 left-0 right-0 px-6 transition-all duration-500 ease-in-out ${
         isModalActive
@@ -77,9 +107,9 @@ export default function Navbar() {
       }`}
     >
       <nav
-        className={`max-w-7xl mx-auto transition-all duration-500 ease-in-out ${
+        className={`max-w-7xl mx-auto transition-all duration-500 ease-in-out relative ${
           scrolled
-            ? "bg-white/70 backdrop-blur-2xl py-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-white/20 rounded-[2rem]"
+            ? "bg-white/80 backdrop-blur-2xl py-3 shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-white/20 rounded-[2rem]"
             : "bg-white/40 backdrop-blur-md py-4 border border-white/10 rounded-3xl"
         }`}
       >
@@ -122,11 +152,42 @@ export default function Navbar() {
           {/* Actions */}
           <div className="flex items-center gap-3">
             {admin && (
+              <div className="relative" ref={infoRef}>
+                <button
+                  onClick={() => setShowInfo(!showInfo)}
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-inner ${
+                    showInfo ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                  }`}
+                >
+                  <Info size={18} />
+                </button>
+
+                {/* Admin Info Dropdown */}
+                {showInfo && (
+                  <div className="absolute right-0 mt-4 w-64 bg-white rounded-3xl shadow-2xl border border-slate-100 p-5 z-[110] animate-in fade-in zoom-in duration-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 font-bold uppercase">আইডি প্রোফাইল</p>
+                        <p className="text-sm font-black text-slate-900 truncate">
+                          {adminInfo?.name || "এডমিন ইউজার"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 border-t pt-4">
+                      <p className="text-[11px] text-slate-500">রোল: <span className="text-slate-900 font-bold">{adminInfo?.role}</span></p>
+                      <p className="text-[11px] text-slate-500">সেন্টার: <span className="text-slate-900 font-bold">{adminInfo?.center || "N/A"}</span></p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {admin && (
               <button
-                onClick={() => {
-                  localStorage.clear();
-                  window.location.reload();
-                }}
+                onClick={handleLogout}
                 className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-inner"
               >
                 <LogOut size={18} />
@@ -145,9 +206,7 @@ export default function Navbar() {
         {/* Mobile Menu */}
         <div
           className={`lg:hidden overflow-hidden transition-all duration-500 ease-in-out ${
-            menuOpen
-              ? "max-h-[500px] opacity-100"
-              : "max-h-0 opacity-0 pointer-events-none"
+            menuOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
           }`}
         >
           <div className="p-6 pt-10 space-y-4">
@@ -167,9 +226,7 @@ export default function Navbar() {
                 </span>
                 <ArrowRight
                   size={16}
-                  className={
-                    pathname === link.path ? "text-white" : "text-slate-300"
-                  }
+                  className={pathname === link.path ? "text-white" : "text-slate-300"}
                 />
               </Link>
             ))}
