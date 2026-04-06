@@ -95,7 +95,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "/login"; // রিলেটিভ পাথ ব্যবহার করা ভালো
+    window.location.href = "/admin"; // রিলেটিভ পাথ ব্যবহার করা ভালো
   };
 
   return (

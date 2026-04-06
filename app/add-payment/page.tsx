@@ -15,6 +15,7 @@ import {
 
 export default function AddPayment() {
   const [members, setMembers] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null); // লগইন করা এডমিনের জন্য
   const [selectedCenter, setSelectedCenter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [amount, setAmount] = useState("500");
@@ -33,38 +34,56 @@ export default function AddPayment() {
     months[new Date().getMonth()]
   );
 
-  // ✅ Fetch members
+  // ১. মেম্বার এবং এডমিন ডাটা লোড করা
   useEffect(() => {
+    // এডমিন ডাটা নেওয়া
+    const adminData = localStorage.getItem("admin");
+    if (adminData) {
+      const parsedUser = JSON.parse(adminData);
+      setUser(parsedUser);
+      
+      // যদি সেন্টার এডমিন হয়, তবে শুরুতেই তার সেন্টার সেট করে দেওয়া
+      if (parsedUser.role === "center_admin") {
+        setSelectedCenter(String(parsedUser.center));
+      }
+    }
+
+    // মেম্বার লিস্ট ফেচ করা
     fetch("http://localhost:5000/members")
       .then((res) => res.json())
       .then((data) => setMembers(data))
       .catch((err) => console.error(err));
   }, []);
 
-  // ✅ Filter members
+  // ২. মেম্বার ফিল্টারিং (রোল অনুযায়ী)
   const filteredMembers = useMemo(() => {
+    // যদি সেন্টার এডমিন হয় এবং কোনোভাবে সার্চ কুয়েরি না থাকে, তবুও সে তার সেন্টারের বাইরে মেম্বার দেখবে না
     if (!selectedCenter && !searchQuery) return [];
+
     return members
       .filter((m) => {
+        // সেন্টার ম্যাচিং লজিক
         const matchesCenter = selectedCenter
-          ? m.centerId === parseInt(selectedCenter)
+          ? String(m.centerId) === String(selectedCenter)
           : true;
+
+        // সার্চ কুয়েরি ম্যাচিং লজিক
         const matchesSearch = searchQuery
           ? m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             m.trustId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             m.memberId?.toLowerCase().includes(searchQuery.toLowerCase())
           : true;
+
         return matchesCenter && matchesSearch;
       })
       .slice(0, 10);
   }, [members, selectedCenter, searchQuery]);
 
-  // ✅ Fetch History (Fixed Logic)
+  // ৩. হিস্ট্রি ফেচ করা
   const fetchMemberHistory = async () => {
     if (!selectedMember) return;
     setLoading(true);
     try {
-      // ব্যাকএন্ডে যদি _id দিয়ে সার্চ করেন তবে selectedMember._id ব্যবহার করুন
       const memberIdForFetch = selectedMember._id; 
       const res = await fetch(`http://localhost:5000/payments/${memberIdForFetch}`);
       const data = await res.json();
@@ -77,7 +96,7 @@ export default function AddPayment() {
     }
   };
 
-  // ✅ Submit Payment
+  // ৪. পেমেন্ট সাবমিট
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!selectedMember || !amount) {
@@ -119,13 +138,17 @@ export default function AddPayment() {
     }
   };
 
+  if (!user) return <div className="p-10 text-center">Loading Admin Access...</div>;
+
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4">
       <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
         <div className="bg-green-600 p-8 text-white text-center">
           <CircleDollarSign className="w-12 h-12 mx-auto mb-3 opacity-90" />
           <h1 className="text-3xl font-bold">পেমেন্ট সংগ্রহ</h1>
-          <p className="opacity-80 mt-1">সদস্যের ট্রাস্ট আইডি বা নাম দিয়ে পেমেন্ট খুঁজুন</p>
+          <p className="opacity-80 mt-1">
+            {user.role === "main_admin" ? "সকল ইউনিটের পেমেন্ট গ্রহণ করুন" : `ইউনিট-${user.center} এর পেমেন্ট গ্রহণ করুন`}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
@@ -134,8 +157,12 @@ export default function AddPayment() {
               <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                 <MapPin size={16} className="text-green-600" /> সেন্টার নির্বাচন
               </label>
+              {/* সেন্টার এডমিন হলে ড্রপডাউন ডিজেবল থাকবে */}
               <select
-                className="w-full border border-slate-200 p-3.5 rounded-xl bg-white outline-none cursor-pointer"
+                disabled={user.role === "center_admin"}
+                className={`w-full border border-slate-200 p-3.5 rounded-xl bg-white outline-none ${
+                  user.role === "center_admin" ? "bg-slate-50 text-slate-500 cursor-not-allowed" : "cursor-pointer"
+                }`}
                 value={selectedCenter}
                 onChange={(e) => {
                   setSelectedCenter(e.target.value);
@@ -160,6 +187,7 @@ export default function AddPayment() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {/* সার্চ রেজাল্ট ড্রপডাউন */}
               {searchQuery && !selectedMember && (
                 <div className="absolute z-10 w-full bg-white border mt-1 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                   {filteredMembers.length > 0 ? (
@@ -179,13 +207,14 @@ export default function AddPayment() {
                       </div>
                     ))
                   ) : (
-                    <div className="p-3 text-sm text-slate-500">মেম্বার পাওয়া যায়নি</div>
+                    <div className="p-3 text-sm text-slate-500 text-center">মেম্বার পাওয়া যায়নি</div>
                   )}
                 </div>
               )}
             </div>
           </div>
 
+          {/* মেম্বার সিলেক্টেড কার্ড */}
           {selectedMember && (
             <div className="bg-green-50 border border-green-200 p-4 rounded-2xl flex items-center justify-between gap-4 animate-in fade-in zoom-in duration-300">
               <div className="flex items-center gap-4">
@@ -240,31 +269,27 @@ export default function AddPayment() {
           </div>
 
           <button
-            disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-extrabold py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
+            disabled={loading || !selectedMember}
+            className={`w-full font-extrabold py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 ${
+              loading || !selectedMember ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"
+            }`}
           >
             {loading ? "প্রসেসিং..." : "পেমেন্ট নিশ্চিত করুন"}
           </button>
         </form>
       </div>
 
-      {/* --- History Modal (Fixed UI) --- */}
+      {/* --- History Modal --- */}
       {showHistory && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            onClick={() => setShowHistory(false)}
-          />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowHistory(false)} />
           <div className="relative bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl">
             <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-black">পেমেন্ট রেকর্ড</h2>
                 <p className="text-xs opacity-60">{selectedMember?.name}</p>
               </div>
-              <button
-                onClick={() => setShowHistory(false)}
-                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
-              >
+              <button onClick={() => setShowHistory(false)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition">
                 <X size={20} />
               </button>
             </div>
@@ -273,16 +298,13 @@ export default function AddPayment() {
               <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-700">
                 <CreditCard size={18} className="text-blue-600" /> Transaction Log
               </h3>
-
-              <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2">
+              <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 text-sm">
                 {memberPayments.length > 0 ? (
                   memberPayments.map((p, i) => (
                     <div key={i} className="flex justify-between items-center p-4 border border-slate-100 rounded-2xl bg-slate-50">
                       <div>
                         <p className="font-bold text-slate-800">{p.month}</p>
-                        <p className="text-[10px] text-gray-400">
-                          {new Date(p.date).toLocaleDateString()}
-                        </p>
+                        <p className="text-[10px] text-gray-400">{new Date(p.date).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-black text-blue-600">৳{p.amount}</p>
@@ -297,11 +319,7 @@ export default function AddPayment() {
                   </div>
                 )}
               </div>
-
-              <button
-                onClick={() => setShowHistory(false)}
-                className="w-full mt-6 bg-slate-100 text-slate-900 font-bold py-3 rounded-xl hover:bg-slate-200 transition"
-              >
+              <button onClick={() => setShowHistory(false)} className="w-full mt-6 bg-slate-100 text-slate-900 font-bold py-3 rounded-xl hover:bg-slate-200 transition">
                 বন্ধ করুন
               </button>
             </div>
