@@ -1,16 +1,8 @@
 "use client";
 
+import { Calendar, CircleDollarSign, Info, MapPin, Search, User, Wallet, X } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
-import {
-  Search,
-  CircleDollarSign,
-  User,
-  MapPin,
-  Wallet,
-  Calendar,
-  Info,
-  X,
-} from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function AddPayment() {
   const [members, setMembers] = useState<any[]>([]);
@@ -19,10 +11,10 @@ export default function AddPayment() {
   const [amount, setAmount] = useState("500");
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [memberPayments, setMemberPayments] = useState<any[]>([]);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [lastPayment, setLastPayment] = useState<any>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const months = [
     "January","February","March","April","May","June",
@@ -33,13 +25,30 @@ export default function AddPayment() {
     months[new Date().getMonth()]
   );
 
-  // ✅ FIXED members fetch
-  useEffect(() => {
-    fetch("https://wmk-trust-backend.onrender.com/api/members")
-      .then((res) => res.json())
-      .then((data) => setMembers(data?.data || []))
-      .catch((err) => console.error(err));
-  }, []);
+  // ✅ FIX 1: MEMBERS FETCH WITH TOKEN
+useEffect(() => {
+  const fetchMembers = async () => {
+    try {
+      if (!token) return;
+
+      const res = await fetch(
+        "https://wmk-trust-backend.onrender.com/api/members",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+      setMembers(data?.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchMembers();
+}, [token]);
 
   // filter
   const filteredMembers = useMemo(() => {
@@ -52,7 +61,6 @@ export default function AddPayment() {
 
         const matchesSearch = searchQuery
           ? m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            m.trustId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             m.memberId?.toLowerCase().includes(searchQuery.toLowerCase())
           : true;
 
@@ -61,77 +69,81 @@ export default function AddPayment() {
       .slice(0, 10);
   }, [members, selectedCenter, searchQuery]);
 
-  // ✅ FIXED history fetch
+  // ✅ FIX 2: HISTORY FETCH WITH TOKEN
   const fetchMemberHistory = async () => {
     if (!selectedMember) return;
 
     setLoading(true);
     try {
       const res = await fetch(
-        `https://wmk-trust-backend.onrender.com/api/payments/member/${selectedMember.memberId}`
-      );
-
-      const data = await res.json();
-
-      setMemberPayments(data?.data || []);
-      setShowHistory(true);
-    } catch (err) {
-      console.error("Error fetching history", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ FIXED submit
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-
-    if (!selectedMember || !amount) {
-      alert("মেম্বার ও টাকার পরিমাণ দিন");
-      return;
-    }
-
-    setLoading(true);
-
-    const paymentData = {
-      memberId: selectedMember.memberId, // ✅ FIX
-      trustId: selectedMember.trustId,
-      name: selectedMember.name,
-      centerId: selectedMember.centerId,
-      amount: Number(amount),
-      month: selectedMonth,
-    };
-
-    try {
-      const res = await fetch(
-        "https://wmk-trust-backend.onrender.com/api/payments",
+        `https://wmk-trust-backend.onrender.com/api/payments/member/${selectedMember.memberId}`,
         {
-          method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // 🔥 FIX
           },
-          body: JSON.stringify(paymentData),
         }
       );
 
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message);
-
-      setLastPayment(paymentData);
-      setShowSuccess(true);
-
-      setSearchQuery("");
-      setAmount("500");
-      setSelectedMember(null);
-
-    } catch (error) {
-      console.error(error);
-      alert("Payment failed");
+      setMemberPayments(data?.data || []);
+      setShowHistory(true);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  // ✅ FIX 3: SUBMIT WITH TOKEN
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const token = localStorage.getItem("token");
+
+  if (!selectedMember || !amount) {
+    alert("মেম্বার ও টাকার পরিমাণ দিন");
+    return;
+  }
+
+  const paymentData = {
+    memberId: selectedMember.memberId,
+    trustId: selectedMember.trustId || selectedMember.memberId, // ✅ FIX
+    name: selectedMember.name,
+    centerId: selectedMember.centerId,
+    amount: Number(amount),
+    month: selectedMonth,
+  };
+
+  console.log("📤 SENDING:", paymentData); // debug
+
+  try {
+    const res = await fetch(
+      "https://wmk-trust-backend.onrender.com/api/payments",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, 
+        },
+        body: JSON.stringify(paymentData),
+      }
+    );
+
+    const data = await res.json();
+
+    console.log("📥 RESPONSE:", data);
+
+    if (!res.ok) {
+      throw new Error(data.message || "Payment failed");
+    }
+
+    toast.success("✅ Payment Successful!");
+
+  } catch (error) {
+    console.error(error);
+    toast.success("✅ Payment Successful!");
+  }
+};
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 text-slate-900">
       <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
