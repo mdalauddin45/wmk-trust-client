@@ -17,15 +17,19 @@ export default function MemberDetailsModal({ member, onClose }: any) {
     };
   }, [member]);
 
-  // ✅ Fetch payments dynamically
+  // ✅ FIXED: Fetch payments
   useEffect(() => {
-    if (!member?._id) return;
+    if (!member?.memberId) return;
 
     setLoading(true);
 
-    fetch(`https://wmk-trust-backend.onrender.com/payments/${member._id}`)
+    fetch(
+      `https://wmk-trust-backend.onrender.com/api/payments/member/${member.memberId}`
+    )
       .then((res) => res.json())
-      .then((data) => setPayments(data))
+      .then((data) => {
+        setPayments(data?.data || []); // ✅ FIX
+      })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, [member]);
@@ -60,11 +64,11 @@ export default function MemberDetailsModal({ member, onClose }: any) {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-slate-50 rounded-xl">
               <p className="text-xs text-gray-400">Location</p>
-              <p className="font-bold">{member.address}</p>
+              <p className="font-bold">{member.address || "-"}</p>
             </div>
             <div className="p-4 bg-slate-50 rounded-xl">
               <p className="text-xs text-gray-400">Phone</p>
-              <p className="font-bold">{member.phone}</p>
+              <p className="font-bold">{member.phone || "-"}</p>
             </div>
           </div>
 
@@ -87,16 +91,23 @@ export default function MemberDetailsModal({ member, onClose }: any) {
                     >
                       <div>
                         <p className="font-bold">
-                          {new Date(p.date).toLocaleString("default", {
-                            month: "long",
-                          })}
+                          {p.month ||
+                            new Date(p.date).toLocaleString("default", {
+                              month: "long",
+                            })}
                         </p>
-                        <p className="text-xs text-gray-400">Monthly Fee</p>
+                        <p className="text-xs text-gray-400">
+                          {p.date
+                            ? new Date(p.date).toLocaleDateString()
+                            : "Monthly Fee"}
+                        </p>
                       </div>
 
                       <div className="text-right">
                         <p className="font-bold">৳{p.amount}</p>
-                        <span className="text-green-500 text-xs">Paid</span>
+                        <span className="text-green-500 text-xs">
+                          {p.status || "Paid"}
+                        </span>
                       </div>
                     </div>
                   ))

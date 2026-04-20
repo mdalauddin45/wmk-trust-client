@@ -11,38 +11,43 @@ interface MemberTableProps {
 export default function MemberTable({ members, onSelectMember }: MemberTableProps) {
   const [payments, setPayments] = useState<any[]>([]);
 
-  // ✅ পেমেন্ট ডাটা ফেচ করা
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await fetch("https://wmk-trust-backend.onrender.com/payments");
+        const token = localStorage.getItem("token"); // ✅ AUTH
+
+        const res = await fetch(
+          "https://wmk-trust-backend.onrender.com/api/payments",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         const data = await res.json();
-        setPayments(data);
+
+        setPayments(data?.data || []); // ✅ FIX
       } catch (err) {
         console.error("Error fetching payments:", err);
       }
     };
+
     fetchPayments();
   }, []);
 
-  // ✅ ডাইনামিক পেমেন্ট স্ট্যাটাস চেক ফাংশন
+  // ✅ FIXED STATUS CHECK
   const checkPaymentStatus = (member: any) => {
     if (!payments || payments.length === 0) return undefined;
 
-    // বর্তমান মাস (যেমন: April) এবং বছর বের করা
-    const currentMonthName = new Date().toLocaleString("en-US", { month: "long" }); // "April"
-    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().toLocaleString("en-US", { month: "long" });
 
     return payments.find((p) => {
-      const pDate = new Date(p.date);
-      
-      // আইডি ম্যাচিং: ডাটাবেসের memberId (String) এর সাথে মেম্বারের _id বা memberId চেক
-      const isSameMember = 
-        String(p.memberId) === String(member._id) || 
-        String(p.memberId) === String(member.memberId);
-      
-      // মাস এবং বছর চেক (আপনার স্ক্রিনশট অনুযায়ী month: "April" ফিল্ড আছে)
-      const isSameMonth = p.month === currentMonthName && pDate.getFullYear() === currentYear;
+      const isSameMember =
+        String(p.memberId) === String(member.memberId); // ✅ FIX
+
+      const isSameMonth =
+        p.month === currentMonth && p.status === "Paid"; // ✅ FIX
 
       return isSameMember && isSameMonth;
     });
@@ -83,22 +88,31 @@ export default function MemberTable({ members, onSelectMember }: MemberTableProp
                             {member.name?.charAt(0)}
                           </div>
                           <div className="flex flex-col">
-                            <p className="font-bold text-sm md:text-base line-clamp-1">{member.name}</p>
-                            
-                            {/* Mobile Payment Status */}
+                            <p className="font-bold text-sm md:text-base line-clamp-1">
+                              {member.name}
+                            </p>
+
+                            {/* Mobile Status */}
                             <div className="sm:hidden mt-1">
-                               <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                                 isPaid ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                               }`}>
-                                 ৳{displayAmount} — {isPaid ? "Paid" : "Due"}
-                               </span>
+                              <span
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                  isPaid
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-red-100 text-red-600"
+                                }`}
+                              >
+                                ৳{displayAmount} — {isPaid ? "Paid" : "Due"}
+                              </span>
                             </div>
-                            <p className="hidden md:block text-xs text-gray-400">Verified Member</p>
+
+                            <p className="hidden md:block text-xs text-gray-400">
+                              Verified Member
+                            </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Desktop Payment Status */}
+                      {/* Desktop */}
                       <td className="hidden sm:table-cell px-8 py-5">
                         <div
                           className={`inline-block px-4 py-1 rounded-full text-xs font-bold ${

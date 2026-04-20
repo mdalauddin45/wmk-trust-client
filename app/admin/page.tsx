@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react"
+import { Lock, Mail, Eye, EyeOff, ShieldCheck } from "lucide-react"
 
 export default function AdminLogin() {
   const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -13,33 +14,49 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!email || !password) {
+      alert("Email এবং Password দিন")
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const res = await fetch("https://wmk-trust-backend.onrender.com/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email, password })
-      })
+      const res = await fetch(
+        "https://wmk-trust-backend.onrender.com/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email, password })
+        }
+      )
 
       const data = await res.json()
 
-      if (data.success) {
-        // ✅ save all data
-        localStorage.setItem("token", data.token)
-        localStorage.setItem("role", data.admin.role)
-        localStorage.setItem("admin", JSON.stringify(data.admin))
-
-        router.push("/dashboard")
-      } else {
-        alert(data.message || "Login failed")
-        setIsLoading(false)
+      // ❌ server error
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed")
       }
-    } catch (error) {
+
+      // ❌ invalid structure check
+      if (!data.success || !data.token) {
+        throw new Error("Invalid login response")
+      }
+
+      // ✅ Save data
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("role", data.admin?.role || "")
+      localStorage.setItem("admin", JSON.stringify(data.admin || {}))
+
+      // ✅ Redirect
+      router.push("/dashboard")
+
+    } catch (error: any) {
       console.error(error)
-      alert("Server error")
+      alert(error.message || "Server error")
       setIsLoading(false)
     }
   }

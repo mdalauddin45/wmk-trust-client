@@ -17,17 +17,19 @@ export default function AddMember() {
     status: "Active",
   });
 
-  // 🔹 Fetch Members
+  // 🔹 Fetch Members (FIXED)
   useEffect(() => {
-    fetch("https://wmk-trust-backend.onrender.com/members")
+    fetch("https://wmk-trust-backend.onrender.com/api/members")
       .then((res) => res.json())
-      .then((data) => setAllMembers(data))
+      .then((data) => {
+        setAllMembers(data?.data || []); // ✅ FIX
+      })
       .catch((err) => console.error(err));
   }, []);
 
   // 🔹 Input Change
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -37,7 +39,7 @@ export default function AddMember() {
     const centerIdNum = parseInt(selectedCenter);
 
     const centerCount = allMembers.filter(
-      (m) => m.centerId === centerIdNum,
+      (m) => m.centerId === centerIdNum
     ).length;
 
     const nextTrustId = `WMK-${1000 + allMembers.length + 1}`;
@@ -45,7 +47,7 @@ export default function AddMember() {
     return { nextTrustId, centerSerial: centerCount + 1 };
   };
 
-  // 🔹 Submit
+  // 🔹 Submit (FIXED)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -69,23 +71,28 @@ export default function AddMember() {
     };
 
     try {
-      const res = await fetch("https://wmk-trust-backend.onrender.com/members", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newMember),
-      });
+      const res = await fetch(
+        "https://wmk-trust-backend.onrender.com/api/members", // ✅ FIXED
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newMember),
+        }
+      );
 
       const data = await res.json();
 
-      // ✅ UI update
-      setAllMembers((prev) => [...prev, data]);
+      if (!res.ok) throw new Error(data.message || "Error");
 
-      // alert(`সফলভাবে যুক্ত হয়েছে!\nট্রাস্ট আইডি: ${nextTrustId}`);
+      // ✅ FIXED response handling
+      setAllMembers((prev) => [...prev, data?.data]);
+
       setRegisteredId(nextTrustId);
       setShowSuccess(true);
-      // Reset form
+
+      // reset
       setFormData({
         name: "",
         center: "",
@@ -93,6 +100,7 @@ export default function AddMember() {
         bloodGroup: "",
         status: "Active",
       });
+
     } catch (error) {
       console.error(error);
       alert("Error adding member");

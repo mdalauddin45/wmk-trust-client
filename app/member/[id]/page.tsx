@@ -19,28 +19,30 @@ export default function MemberDetails() {
   const [member, setMember] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
 
-  // ✅ Load Member Info
+  // ✅ Load Member Info (FIXED)
   useEffect(() => {
     if (!params.id) return;
 
-    fetch(`https://wmk-trust-backend.onrender.com/members/${params.id}`)
+    fetch(`https://wmk-trust-backend.onrender.com/api/members/${params.id}`)
       .then((res) => res.json())
-      .then((data) => setMember(data))
+      .then((data) => setMember(data?.data || data)) // ✅ FIX
       .catch((err) => console.error(err));
   }, [params.id]);
 
-  // ✅ Load Payment History
+  // ✅ Load Payment History (FIXED)
   useEffect(() => {
-    if (!params.id) return;
+    if (!member?.memberId) return;
 
-    fetch(`https://wmk-trust-backend.onrender.com/payments/${params.id}`)
+    fetch(
+      `https://wmk-trust-backend.onrender.com/api/payments/member/${member.memberId}`
+    )
       .then((res) => res.json())
-      .then((data) => setPayments(data))
+      .then((data) => setPayments(data?.data || [])) // ✅ FIX
       .catch((err) => console.error(err));
-  }, [params.id]);
+  }, [member]);
 
-  // ✅ Total টাকা হিসাব
-  const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+  // ✅ Total Amount
+  const totalAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 md:p-10">
@@ -128,21 +130,21 @@ export default function MemberDetails() {
                     <div className="flex gap-3">
                       <Calendar size={18} />
                       <div>
-                        <p>{new Date(p.date).toLocaleString("default", { month: "long" })}</p>
+                        <p>{p.month || "-"}</p>
                         <p className="text-xs text-gray-400">
-                          {new Date(p.date).toLocaleDateString()}
+                          {p.date ? new Date(p.date).toLocaleDateString() : "-"}
                         </p>
                       </div>
                     </div>
                   </td>
 
                   <td className="px-8 py-5">
-                    <code>{p._id?.slice(-6)}</code>
+                    <code>{p.tranId || p._id?.toString().slice(-6)}</code>
                   </td>
 
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-1 text-green-600">
-                      <CheckCircle2 size={14} /> Paid
+                      <CheckCircle2 size={14} /> {p.status || "Paid"}
                     </div>
                   </td>
 
