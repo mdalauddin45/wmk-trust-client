@@ -94,10 +94,8 @@ useEffect(() => {
     }
   };
 
-  // ✅ FIX 3: SUBMIT WITH TOKEN
- const handleSubmit = async (e) => {
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {  
   e.preventDefault();
-
   const token = localStorage.getItem("token");
 
   if (!selectedMember || !amount) {
