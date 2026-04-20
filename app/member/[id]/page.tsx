@@ -23,7 +23,7 @@ export default function MemberDetails() {
   useEffect(() => {
     if (!params.id) return;
 
-    fetch(`http://localhost:5000/members/${params.id}`)
+    fetch(`https://wmk-trust-backend.onrender.com/members/${params.id}`)
       .then((res) => res.json())
       .then((data) => setMember(data))
       .catch((err) => console.error(err));
@@ -33,7 +33,7 @@ export default function MemberDetails() {
   useEffect(() => {
     if (!params.id) return;
 
-    fetch(`http://localhost:5000/payments/${params.id}`)
+    fetch(`https://wmk-trust-backend.onrender.com/payments/${params.id}`)
       .then((res) => res.json())
       .then((data) => setPayments(data))
       .catch((err) => console.error(err));

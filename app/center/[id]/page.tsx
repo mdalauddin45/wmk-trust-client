@@ -29,9 +29,9 @@ export default function CenterPage() {
     const fetchData = async () => {
       try {
         const [membersRes, paymentsRes, centersRes] = await Promise.all([
-          fetch("http://localhost:5000/members"),
-          fetch("http://localhost:5000/payments"),
-          fetch("http://localhost:5000/centers") // ✅ সেন্টারের এপিআই কল
+          fetch("https://wmk-trust-backend.onrender.com/members"),
+          fetch("https://wmk-trust-backend.onrender.com/payments"),
+          fetch("https://wmk-trust-backend.onrender.com/centers") // ✅ সেন্টারের এপিআই কল
         ]);
         
         const membersData = await membersRes.json();

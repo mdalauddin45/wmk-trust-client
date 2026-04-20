@@ -25,7 +25,7 @@ export default function Dashboard() {
     }
 
     // ২. ব্যাকএন্ড থেকে সেন্টারের ডাটা ফেচ করা
-    fetch("http://localhost:5000/centers")
+    fetch("https://wmk-trust-backend.onrender.com/centers")
       .then((res) => res.json())
       .then((data) => {
         setCenters(data);

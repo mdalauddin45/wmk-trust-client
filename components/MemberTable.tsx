@@ -15,7 +15,7 @@ export default function MemberTable({ members, onSelectMember }: MemberTableProp
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await fetch("http://localhost:5000/payments");
+        const res = await fetch("https://wmk-trust-backend.onrender.com/payments");
         const data = await res.json();
         setPayments(data);
       } catch (err) {

@@ -33,15 +33,15 @@ export default function AddPayment() {
     months[new Date().getMonth()]
   );
 
-  // ✅ Fetch members
+  //Fetch members
   useEffect(() => {
-    fetch("http://localhost:5000/members")
+    fetch("https://wmk-trust-backend.onrender.com/members")
       .then((res) => res.json())
       .then((data) => setMembers(data))
       .catch((err) => console.error(err));
   }, []);
 
-  // ✅ Filter members
+  //Filter members
   const filteredMembers = useMemo(() => {
     if (!selectedCenter && !searchQuery) return [];
     return members
@@ -59,14 +59,13 @@ export default function AddPayment() {
       .slice(0, 10);
   }, [members, selectedCenter, searchQuery]);
 
-  // ✅ Fetch History (Fixed Logic)
+  //Fetch History
   const fetchMemberHistory = async () => {
     if (!selectedMember) return;
     setLoading(true);
     try {
-      // ব্যাকএন্ডে যদি _id দিয়ে সার্চ করেন তবে selectedMember._id ব্যবহার করুন
       const memberIdForFetch = selectedMember._id; 
-      const res = await fetch(`http://localhost:5000/payments/${memberIdForFetch}`);
+      const res = await fetch(`https://wmk-trust-backend.onrender.com/payments/${memberIdForFetch}`);
       const data = await res.json();
       setMemberPayments(data);
       setShowHistory(true);
@@ -77,7 +76,7 @@ export default function AddPayment() {
     }
   };
 
-  // ✅ Submit Payment
+  //Submit Payment
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!selectedMember || !amount) {
@@ -96,7 +95,7 @@ export default function AddPayment() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/payments", {
+      const res = await fetch("https://wmk-trust-backend.onrender.com/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(paymentData),
@@ -248,7 +247,7 @@ export default function AddPayment() {
         </form>
       </div>
 
-      {/* --- History Modal (Fixed UI) --- */}
+      {/* --- History Modal --- */}
       {showHistory && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div

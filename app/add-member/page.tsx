@@ -19,7 +19,7 @@ export default function AddMember() {
 
   // 🔹 Fetch Members
   useEffect(() => {
-    fetch("http://localhost:5000/members")
+    fetch("https://wmk-trust-backend.onrender.com/members")
       .then((res) => res.json())
       .then((data) => setAllMembers(data))
       .catch((err) => console.error(err));
@@ -69,7 +69,7 @@ export default function AddMember() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/members", {
+      const res = await fetch("https://wmk-trust-backend.onrender.com/members", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

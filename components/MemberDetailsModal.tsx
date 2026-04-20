@@ -23,7 +23,7 @@ export default function MemberDetailsModal({ member, onClose }: any) {
 
     setLoading(true);
 
-    fetch(`http://localhost:5000/payments/${member._id}`)
+    fetch(`https://wmk-trust-backend.onrender.com/payments/${member._id}`)
       .then((res) => res.json())
       .then((data) => setPayments(data))
       .catch((err) => console.error(err))
